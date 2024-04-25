@@ -32,14 +32,16 @@ int rodar(char* programa[], char* argumentos[]) {
 }
 
 int main(int argc, char* argv[]) {
-    if (strcmp(argv[0], "execute") && strcmp(argv[2], "-u")) {
+    printf("primeiro funcionou!\n");
+    printf("%s\n", argv[1]);
+    if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-u")) {
         // rodar
     }
-    else if (strcmp(argv[0], "execute") && strcmp(argv[2], "-p")) {
+    else if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-p")) {
         // rodar
     }
-    else if (strcmp(argv[0], "status")) {
-        // outra coisa
+    else if (strcmp(argv[1], "status") == 0 ) {
+        printf("segundo funcionou!\n");
     }
 
     return 0;
