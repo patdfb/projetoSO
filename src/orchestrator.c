@@ -23,6 +23,12 @@ int main() {
 
     // Lê o comando do pipe usando read
 
+    // Faz exec em processo filho e retorna no processo pai o identificador único como em mysystem()
+
+    // Escreve no log o estado de execução + o tempo demorado
+
+    // ESCALONAMENTO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     close(pipe_fd);
 
     return 0;
