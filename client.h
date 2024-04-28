@@ -1,2 +1,3 @@
 int main(int argc, char* argv[]);
-int rodar(char* programa[], char* argumentos[]);
+int execute_uni(char* argumentos[]);
+int execute_multi(char* argumentos[]);
