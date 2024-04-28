@@ -10,11 +10,12 @@
 int execute_uni(char* argumentos[]) {
     char* comando_dup = strdup(argumentos);
     char* comando = strtok(comando_dup, " ");
+    char* token = strtok(NULL, " ");
     char* args[32];
     int i = 0;
-    while(comando != NULL){
-        args[i] = comando;
-        comando = strtok(NULL," ");
+    while(token != NULL){
+        args[i] = token;
+        token = strtok(NULL," ");
         i++;
         }
     arg[i] == NULL;
