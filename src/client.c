@@ -33,8 +33,6 @@ int exec_command(char* arg){
 	return exec_ret;
 }
 
-//falta trocar o N pela length de argumentos[] (????)
-
 int execute_multi(char* argumentos[], int n){
 	
 	char * CMD[] = {
@@ -57,7 +55,7 @@ int execute_multi(char* argumentos[], int n){
                 close(p[i][0]);
                 dup2(p[i][1], 1);
                 close(p[i][1]);
-                int res = exec_command(CMD[i]); //mais argumentos?
+                int res = exec_command(CMD[i]);
                 _exit(res);
 
             }
@@ -72,7 +70,7 @@ int execute_multi(char* argumentos[], int n){
             if(fork()==0){
                 dup2(p[i-1][0],0);
                 close(p[i-1][0]);
-                int res = exec_command(CMD[i]); // faltam argumentos 
+                int res = exec_command(CMD[i]);
 				_exit(res);
             } 
             else{
@@ -90,7 +88,7 @@ int execute_multi(char* argumentos[], int n){
                 close(p[i-1][0]);
                 dup2(p[i][1],1); //stdout, do pipe atual
                 close(p[i][1]);
-                int res = exec_command(CMD[i]); //falta argumentos
+                int res = exec_command(CMD[i]);
 				_exit(res);
             }
             else{
