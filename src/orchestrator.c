@@ -4,12 +4,23 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/time.h>
 
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
 
+int status() {
+    // Como é que imprime sem printf???????
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     if (argc != 4) perror("Não!\n");
+
+    int log_fd = open("log.txt", O_WRONLY | O_CREAT , 0640);
+    if(log_fd==-1){
+        perror("Erro ao abrir o log.");
+    }
 
     int pipe_fd;
     if (mkfifo(FIFO_FILE, 0666) == -1) { // Cria o pipe nomeado
@@ -24,7 +35,11 @@ int main(int argc, char* argv[]) {
     }
 
     char* comando[32];
-    ssize_t rr = read(pipe_fd, &comando, MAX_COMMAND); // Lê o comando
+    int bytes_read;
+
+    while((bytes_read = read(pipe_fd, &comando, MAX_COMMAND)) > 0){
+        int bytes_written = write(log_fd, &comando, bytes_read);
+    } // Lê o comando
 
     /*
     for(int i = 0; buf[i] != NULL; i++) { //isto era debugging, pode sair depois
@@ -49,6 +64,7 @@ int main(int argc, char* argv[]) {
 
     close(pipe_fd);
     unlink(FIFO_FILE);
+    close(log_fd);
 
     return 0;
 }
