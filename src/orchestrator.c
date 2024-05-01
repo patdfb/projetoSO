@@ -41,6 +41,8 @@ int main(int argc, char* argv[]) {
         int bytes_written = write(log_fd, &comando, bytes_read);
     } // Lê o comando
 
+    //colocar a começar a contar o tempo de execução da tarefa
+
     /*
     for(int i = 0; buf[i] != NULL; i++) { //isto era debugging, pode sair depois
         printf("%s ", buf[i]);

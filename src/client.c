@@ -7,6 +7,107 @@
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
 
+int exec_command(char* arg){
+
+	//Estamos a assumir numero maximo de argumentos
+	char *exec_args[MAX_COMMAND];
+
+	char *string;	
+	int exec_ret = 0;
+	int i=0;
+
+	char* command = strdup(arg);
+
+	string=strtok(command," ");
+	
+	while(string!=NULL){
+		exec_args[i]=string;
+		string=strtok(NULL," ");
+		i++;
+	}
+
+	exec_args[i]=NULL;
+	
+	exec_ret=execvp(exec_args[0],exec_args);
+	
+	return exec_ret;
+}
+
+//falta trocar o N pela length de argumentos[] (????)
+
+int execute_multi(char* argumentos[], int n){
+	
+	char * CMD[] = {
+		"grep -v ^# /etc/passwd",
+		"cut -f7 -d:",
+		"uniq",
+		"wc -l"
+	};
+
+	int i;
+    int p[n-1][2];
+
+    for(i=0; i<n; i++){
+
+        if(i==0){
+            pipe(p[0]);
+            //no processo filho
+            if(fork()==0){
+
+                close(p[i][0]);
+                dup2(p[i][1], 1);
+                close(p[i][1]);
+                int res = exec_command(CMD[i]); //mais argumentos?
+                _exit(res);
+
+            }
+            //no processo pai, ainda tem o descritor de leitura e escrita abertos, o unico que vai escrever é o primeiro processo, que já foi tratado anteriormente
+            else{
+                close(p[i][1]);
+            }
+        }
+
+        else if(i==n-1){ //aqui já não é necessário criar um pipe
+
+            if(fork()==0){
+                dup2(p[i-1][0],0);
+                close(p[i-1][0]);
+                int res = exec_command(CMD[i]); // faltam argumentos 
+				_exit(res);
+            } 
+            else{
+                close(p[i-1][0]);
+            }
+
+        }
+
+        else{ //i>0 & i<N-1
+            pipe(p[i]);
+
+            if(fork()==0){
+                close(p[i][0]);
+                dup2(p[i-1][0],0); //stdin, do pipe anterior
+                close(p[i-1][0]);
+                dup2(p[i][1],1); //stdout, do pipe atual
+                close(p[i][1]);
+                int res = exec_command(CMD[i]); //falta argumentos
+				_exit(res);
+            }
+            else{
+                close(p[i-1][0]);
+                //o processo de leitura do pipe atual nao pode ser fechado para o processo seguinte poder usa lo
+                close(p[i][1]); //mas podemos fechar o de escrita pois mais nenhum vai escrever para ele 
+            }
+        }
+    }
+
+	for(i=0; i<n; i++){
+		wait(NULL);
+	}
+
+	return 0;
+}
+
 int execute_uni(char* argumentos[]) {
     char* comando_dup = strdup(argumentos);
     char* comando = strtok(comando_dup, " ");
@@ -44,13 +145,10 @@ int execute_uni(char* argumentos[]) {
     return 0;
 }
 
-int execute_multi(char* argumentos[]) {
-
-    return 0;
-}
-
-
 int main(int argc, char* argv[]) {
+
+    char buff[MAX_COMMAND];
+
     if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-u") == 0) { // execute time -u "prog-a [args]"
         int uni = execute_uni(argv[4]); 
         if (uni == -1) {
@@ -59,15 +157,45 @@ int main(int argc, char* argv[]) {
         }
     }
     else if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-p") == 0) {
-        int multi = execute_multi(argv[4]); 
+        char* argumentos_dup = strdup(argv[4]);
+        char* comando = strtok(argumentos_dup, "|");
+        char* args[32];
+        int i = 0;
+        while(comando != NULL){
+            args[i] = comando;
+            comando = strtok(NULL,"|");
+            i++;
+        }
+
+        int multi = execute_multi(args, i); 
         if (multi == -1) {
             perror("Erro.");
             _exit(EXIT_FAILURE);
         }
     }
     else if (strcmp(argv[1], "status") == 0 ) {
-        // status 
-        // vai buscar ao log (temos de fazer o log!!!!!!!!!!!!) que está no servidor
+        int fifo_fd = open("fifo", O_WRONLY);
+        if (fifo_fd == -1){
+            perror("Erro.");
+            _exit(EXIT_FAILURE); //será que o problema não é por ter aqui este _exit????
+        }
+
+        int bytes_written = write(fifo_fd, argv[1], strlen(argv[1])); //MAX_COMMAND ou strlen(argv[1]) ??? porque ao mandar só o argv[1] sabemso o tamanho dele
+        close(fifo_fd);
+
+        int status_fd = open("fifostatus", O_RDONLY); //criar fifo só para o status? HUGO PORQUÊ?
+        if(status_fd == -1){
+            perror("Erro.");
+            _exit(EXIT_FAILURE);
+        }
+
+        int bytes_read;
+        while(bytes_read = read(status_fd, buff, MAX_COMMAND) > 0){
+            write(1, buff, bytes_read);
+        }
+
+        close(status_fd);
+        // vai buscar ao log (o log abre no servidor mas ainda nada é colocado nele, apenas está criado)
     }
 
     return 0;
