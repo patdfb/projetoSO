@@ -49,10 +49,6 @@ int execute_multi(char* argumentos[]) {
     return 0;
 }
 
-int status() {
-    // Como é que imprime sem printf???????
-    return 0;
-}
 
 int main(int argc, char* argv[]) {
     if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-u") == 0) { // execute time -u "prog-a [args]"
