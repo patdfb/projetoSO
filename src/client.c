@@ -7,40 +7,9 @@
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
 
-int exec_command(char* arg){
 
-	//Estamos a assumir numero maximo de argumentos
-	char *exec_args[MAX_COMMAND];
-
-	char *string;	
-	int exec_ret = 0;
-	int i=0;
-
-	char* command = strdup(arg);
-
-	string=strtok(command," ");
-	
-	while(string!=NULL){
-		exec_args[i]=string;
-		string=strtok(NULL," ");
-		i++;
-	}
-
-	exec_args[i]=NULL;
-	
-	exec_ret=execvp(exec_args[0],exec_args);
-	
-	return exec_ret;
-}
 
 int execute_multi(char* argumentos[], int n){
-	
-	char * CMD[] = {
-		"grep -v ^# /etc/passwd",
-		"cut -f7 -d:",
-		"uniq",
-		"wc -l"
-	};
 
 	int i;
     int p[n-1][2];
@@ -55,7 +24,7 @@ int execute_multi(char* argumentos[], int n){
                 close(p[i][0]);
                 dup2(p[i][1], 1);
                 close(p[i][1]);
-                int res = exec_command(CMD[i]);
+                int res = exec_command(argumentos[i]);
                 _exit(res);
 
             }
@@ -70,7 +39,7 @@ int execute_multi(char* argumentos[], int n){
             if(fork()==0){
                 dup2(p[i-1][0],0);
                 close(p[i-1][0]);
-                int res = exec_command(CMD[i]);
+                int res = exec_command(argumentos[i]);
 				_exit(res);
             } 
             else{
@@ -88,7 +57,7 @@ int execute_multi(char* argumentos[], int n){
                 close(p[i-1][0]);
                 dup2(p[i][1],1); //stdout, do pipe atual
                 close(p[i][1]);
-                int res = exec_command(CMD[i]);
+                int res = exec_command(argumentos[i]);
 				_exit(res);
             }
             else{
@@ -107,25 +76,16 @@ int execute_multi(char* argumentos[], int n){
 }
 
 int execute_uni(char* argumentos[]) {
-    char* comando_dup = strdup(argumentos);
-    char* comando = strtok(comando_dup, " ");
-    char* args[32];
-    int i = 0;
-    while(comando != NULL){
-        args[i] = comando;
-        comando = strtok(NULL," ");
-        i++;
-        }
-    args[i] == NULL;
 
     int pipe_fd; 
+
     pipe_fd = open(FIFO_FILE, O_WRONLY); // Abre o pipe nomeado em modo escrita
     if (pipe_fd == -1) {
         perror("Erro ao abrir.");
         _exit(EXIT_FAILURE);
     }
 
-    ssize_t w = write(pipe_fd, &args, MAX_COMMAND); // assim????? + perror
+    ssize_t w = write(pipe_fd, &argumentos, MAX_COMMAND); // assim????? + perror
 
     close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
 
