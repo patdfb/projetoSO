@@ -3,12 +3,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h> // legal???????
+#include "struct.h"
 
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
 
 
-
+/*
 int execute_multi(char* argumentos[], int n){
 
 	int i;
@@ -75,7 +76,9 @@ int execute_multi(char* argumentos[], int n){
 	return 0;
 }
 
-int execute_uni(char* argumentos[]) {
+*/
+
+int execute_uni(struct Tarefa t) {
 
     int pipe_fd; 
 
@@ -85,7 +88,7 @@ int execute_uni(char* argumentos[]) {
         _exit(EXIT_FAILURE);
     }
 
-    ssize_t w = write(pipe_fd, &argumentos, MAX_COMMAND); // assim????? + perror
+    ssize_t w = write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
 
     close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
 
@@ -106,14 +109,20 @@ int execute_uni(char* argumentos[]) {
 int main(int argc, char* argv[]) {
 
     char buff[MAX_COMMAND];
+    struct Tarefa t;
 
     if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-u") == 0) { // execute time -u "prog-a [args]"
-        int uni = execute_uni(argv[4]); 
+        strcpy(t.argumento, argv[4]);
+        t.tempo = atoi(argv[2]);
+        t.ID = 0;
+        t.estado = 0;
+        t.pid = getpid();
+        int uni = execute_uni(t); 
         if (uni == -1) {
             perror("Erro.");
             _exit(EXIT_FAILURE);
         }
-    }
+    }/*
     else if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-p") == 0) {
         char* argumentos_dup = strdup(argv[4]);
         char* comando = strtok(argumentos_dup, "|");
@@ -131,6 +140,7 @@ int main(int argc, char* argv[]) {
             _exit(EXIT_FAILURE);
         }
     }
+    */
     else if (strcmp(argv[1], "status") == 0 ) {
         int fifo_fd = open("fifo", O_WRONLY);
         if (fifo_fd == -1){

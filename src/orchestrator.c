@@ -2,12 +2,15 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include "struct.h"
 
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
+
 
 int exec_command(char* arg){
 
@@ -39,73 +42,90 @@ int status() {
     return 0;
 }
 
+
 int main(int argc, char* argv[]) {
-    if (argc != 4) perror("Não!\n");
-    unlink("pipe");
-
-    int log_fd = open("log.txt", O_WRONLY | O_CREAT , 0640);
-    if(log_fd==-1){
-        perror("Erro ao abrir o log.");
-    }
-
-    perror("não abortei :D");
-
-    int pipe_fd;
-    if (mkfifo(FIFO_FILE, 0666) == -1) { // Cria o pipe nomeado
-        perror("Erro ao criar FIFO.");
+    if (argc != 4) {
+        perror("Argumentos insuficientes");
         _exit(EXIT_FAILURE);
     }
-    
-    perror("não abortei :D");
+    int max = atoi(argv[2]);
 
-    pipe_fd = open(FIFO_FILE, O_RDONLY); // Abre o pipe nomeado em modo leitura
-    if (pipe_fd == -1) {
-        perror("Erro ao abrir.");
-        _exit(EXIT_FAILURE);
-    }
-
-    perror("não abortei :D");
-
-    char* comando[MAX_COMMAND];
-    int bytes_read;
-
-    while((bytes_read = read(pipe_fd, &comando, MAX_COMMAND)) > 0){
-        //int bytes_written = write(log_fd, &comando, bytes_read);
-        perror("ABRI E LI");
-    } // Lê o comando
-
-    perror("não abortei depois de ler");
-
-    pid_t pid = fork();
-        if (pid == 0) {
-            // Faz execvp em processo filho
-            exec_command(comando); //execl???????
-            _exit(-1);
-        }
-        else {
-            // Retorna no processo pai o identificador único como em mysystem() DEPENDE DO ESCALONAMENTO
-
-        }
-
-    //colocar a começar a contar o tempo de execução da tarefa
-
-    /*
-    for(int i = 0; buf[i] != NULL; i++) { //isto era debugging, pode sair depois
-        printf("%s ", buf[i]);
-    }
-    */
-    write(1, comando, MAX_COMMAND);
-    perror("não abortei aqui");
-    // Escreve no log o estado de execução + o tempo demorado
-
-    // ESCALONAMENTO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    close(pipe_fd);
-    perror("abortei aqui? AH NÃO!");
     unlink(FIFO_FILE);
-    perror("e aqui? tambem não");
+    int ligado = 1;
+    struct Tarefa t;
+
+
+    int log_fd = open("log.txt", O_CREAT , 0640);
+        if(log_fd==-1){
+            perror("Erro ao abrir o log.");
+    }
+
     close(log_fd);
-    perror("nao nao nao!");
+
+
+    if(fork()==0){
+        int pipe_fd;
+
+        if (mkfifo(FIFO_FILE, 0666) == -1) { // Cria o pipe nomeado
+            perror("Erro ao criar FIFO.");
+            _exit(EXIT_FAILURE);
+        }
+        int pos = 0;
+        while(ligado){
+            pipe_fd = open(FIFO_FILE, O_RDONLY); // Abre o pipe nomeado em modo leitura
+            if (pipe_fd == -1) {
+                perror("Erro ao abrir.");
+                _exit(EXIT_FAILURE);
+            }
+
+            read(pipe_fd, &t, sizeof(struct Tarefa));
+            log_fd = open("log.txt", O_WRONLY | O_APPEND);
+            t.ID = pos++;
+            t.estado = 0;
+            write(log_fd, &t, sizeof(struct Tarefa));
+            close(log_fd);
+            
+        }
+        
+
+        //colocar a começar a contar o tempo de execução da tarefa
+
+        // Escreve no log o estado de execução + o tempo demorado
+
+        // ESCALONAMENTO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        close(pipe_fd);
+        unlink(FIFO_FILE);
+        
+    } else{
+        int c=0;
+        while(1){
+            if(fork()==0){
+                int bytes_read;
+                log_fd = open("log.txt", O_RDWR);
+                while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0 && t.estado!=0);
+
+                if(bytes_read != 0){
+                    int res = exec_command(t.argumento);
+                    t.estado = 1;
+                    lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
+                    write(log_fd, &t, sizeof(struct Tarefa));
+                    _exit(res);
+                    t.estado = 2;
+                    lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
+                    write(log_fd, &t, sizeof(struct Tarefa));
+                }
+                close(log_fd);
+            }
+            c++;
+            if(c==max){
+                wait(NULL);
+                c--;
+            }
+        }
+
+    }
+
+
 
     return 0;
 }
