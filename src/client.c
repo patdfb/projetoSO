@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <string.h> // legal???????
+#include <string.h>
 #include "struct.h"
 
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
+#define LOG "tmp/log.txt"
+
 
 
 /*
@@ -142,28 +144,83 @@ int main(int argc, char* argv[]) {
     }
     */
     else if (strcmp(argv[1], "status") == 0 ) {
-        int fifo_fd = open("fifo", O_WRONLY);
-        if (fifo_fd == -1){
-            perror("Erro.");
-            _exit(EXIT_FAILURE); //será que o problema não é por ter aqui este _exit????
-        }
-
-        int bytes_written = write(fifo_fd, argv[1], strlen(argv[1])); //MAX_COMMAND ou strlen(argv[1]) ??? porque ao mandar só o argv[1] sabemso o tamanho dele
-        close(fifo_fd);
-
-        int status_fd = open("fifostatus", O_RDONLY); //criar fifo só para o status? HUGO PORQUÊ?
-        if(status_fd == -1){
-            perror("Erro.");
-            _exit(EXIT_FAILURE);
-        }
-
+        int log_fd = open(LOG, O_RDONLY);
+        struct Tarefa completed[MAX_COMMAND];
+        struct Tarefa executing[MAX_COMMAND];
+        struct Tarefa scheduled[MAX_COMMAND];
+        struct Tarefa t;
+        
+        int c0 = 0, c1 = 0, c2 = 0;
         int bytes_read;
-        while(bytes_read = read(status_fd, buff, MAX_COMMAND) > 0){
-            write(1, buff, bytes_read);
+        while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa))) > 0){
+            int estado = t.estado;
+
+            if(estado == 2){
+                completed[c2].estado = t.estado;
+                completed[c2].ID = t.ID;
+                strcpy(completed[c2].argumento, t.argumento);
+                completed[c2].tempo = t.tempo;
+                completed[c2].pid = t.pid;
+                c2++;
+            } else if(estado == 1){
+                executing[c1].estado = t.estado;
+                executing[c1].ID = t.ID;
+                strcpy(executing[c1].argumento, t.argumento);
+                executing[c1].tempo = t.tempo;
+                executing[c1].pid = t.pid;
+                c1++;
+            } else if(estado == 0){
+                scheduled[c0].estado = t.estado;
+                scheduled[c0].ID = t.ID;
+                strcpy(scheduled[c0].argumento, t.argumento);
+                scheduled[c0].tempo = t.tempo;
+                scheduled[c0].pid = t.pid;
+                c0++;
+            }
+        }
+        close(log_fd);
+        char tamanho[11] = "Executing\n";
+        char tudo[MAX_COMMAND];
+        write(1, "Executing\n", sizeof(tamanho));
+        for(int i=0; i<c1; i++){
+            t = executing[i];
+            sprintf(tudo, "%d", t.ID); //transforma int em string
+            strcat(tudo, " ");
+            char *comando;
+            comando = strtok(t.argumento, " ");
+            strcat(tudo, comando);
+            strcat(tudo, "\n");
+            write(1, tudo, sizeof(tudo));
         }
 
-        close(status_fd);
-        // vai buscar ao log (o log abre no servidor mas ainda nada é colocado nele, apenas está criado)
+        write(1, "\nScheduled\n", sizeof(tamanho));
+        for(int i=0; i<c0; i++){
+            t = scheduled[i];
+            sprintf(tudo, "%d", t.ID); //transforma int em string
+            strcat(tudo, " ");
+            char *comando;
+            comando = strtok(t.argumento, " ");
+            strcat(tudo, comando);
+            strcat(tudo, "\n");
+            write(1, tudo, sizeof(tudo));
+        }
+
+        write(1, "\nCompleted\n", sizeof(tamanho));
+        for(int i=0; i<c2; i++){
+            t = completed[i];
+            sprintf(tudo, "%d", t.ID); //transforma int em string
+            strcat(tudo, " ");
+            char *comando;
+            comando = strtok(t.argumento, " ");
+            strcat(tudo, comando);
+            char Tempo[30];
+            sprintf(Tempo, "%d", t.tempo);
+            strcat(tudo, " ");
+            strcat(tudo, Tempo);
+            strcat(tudo, "\n");
+            write(1, tudo, sizeof(tudo));
+        }
+
     }
 
     return 0;
