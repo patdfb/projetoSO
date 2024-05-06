@@ -171,26 +171,26 @@ int main(int argc, char* argv[]) {
             if(estado == 2){
                 completed[c2].estado = t.estado;
                 completed[c2].ID = t.ID;
-                strcpy(completed[c2].argumento, t.argumento);
                 completed[c2].tempoEstimado = t.tempoEstimado;
                 completed[c2].tempoReal = t.tempoReal;
                 completed[c2].pid = t.pid;
+                strcpy(completed[c2].argumento, t.argumento);
                 c2++;
             } else if(estado == 1){
                 executing[c1].estado = t.estado;
                 executing[c1].ID = t.ID;
-                strcpy(executing[c1].argumento, t.argumento);
                 executing[c1].tempoEstimado = t.tempoEstimado;
                 completed[c1].tempoReal = t.tempoReal;
                 completed[c1].pid = t.pid;
+                strcpy(executing[c1].argumento, t.argumento);
                 c1++;
             } else if(estado == 0){
                 scheduled[c0].estado = t.estado;
                 scheduled[c0].ID = t.ID;
-                strcpy(scheduled[c0].argumento, t.argumento);
                 scheduled[c0].tempoEstimado = t.tempoEstimado;
                 completed[c0].tempoReal = t.tempoReal;
                 completed[c0].pid = t.pid;
+                strcpy(scheduled[c0].argumento, t.argumento);
                 c0++;
             }
         }

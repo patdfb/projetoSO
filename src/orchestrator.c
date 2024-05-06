@@ -136,25 +136,39 @@ int main(int argc, char* argv[]) {
         unlink(FIFO_FILE);
         
     } else{
-        int c=0,p;
+        int c=0,p,maxp =0;
+        struct Tarefa lista[1024];
         int tarefados[max];
         __clock_t inicio,fim;
         for (c = 0;c<max;c++){
             tarefados[c]= 0;
         }
         while(1){
-            struct Tarefa t;
             int bytes_read;
+            struct Tarefa t;
             log_fd = open(LOG, O_RDONLY);
             if(log_fd==-1){
                 perror("Erro ao abrir o log.");
             }
-            while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0) {
+            while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0){
+                if(t.ID>maxp){
+                    lista[t.ID].ID = t.ID;
+                    lista[t.ID].tempoEstimado = t.tempoEstimado;
+                    lista[t.ID].pid = t.pid;
+                    lista[t.ID].estado = 0;
+                    lista[t.ID].tempoReal = 0;
+                    strcpy(lista[t.ID].argumento,t.argumento);
+                    maxp = t.ID;
+                }
+            }
+            close(log_fd);
+
+            for(int i = 0; i<maxp;i++){
                 for(c=0;c<max;c++){
                     if(t.ID==tarefados[c] && t.estado==2)tarefados[c] = 0;
                 }
             }
-            close(log_fd);
+            
             p = -1;
             for(c=0;c<max;c++){
                 if(tarefados[c]==0)p = c;
@@ -165,31 +179,26 @@ int main(int argc, char* argv[]) {
                 t.estado = 1;
                 lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
                 write(log_fd, &t, sizeof(struct Tarefa));
-                close(log_fd);
                 tarefados[p] = t.ID;
                 pid_t fork2 = fork();
                 if(fork2==0){
                     struct timeval start,end;
                     double elapsedTime;
                     gettimeofday(&start,NULL);
-                    int tID = t.ID;
                     perror("adeus loren");
                     exec_command(t.argumento);
                     int status;
                     wait(&status);
                     if(WIFEXITED(status)){
-                        struct Tarefa t2;
-                        int log_fd2 = open(LOG, O_RDWR);
-                        while((bytes_read = read(log_fd2, &t2, sizeof(struct Tarefa)))>0 && t2.ID!=tID);
                         perror("merda do pedro");
                         gettimeofday(&end,NULL);
                         elapsedTime = (end.tv_sec - start.tv_sec) * 1000.0;
                         elapsedTime += (end.tv_usec - start.tv_usec) / 1000.0;
-                        t2.tempoReal = (int)elapsedTime;
-                        t2.estado = 2;
-                        lseek(log_fd2, -sizeof(struct Tarefa), SEEK_CUR);
-                        write(log_fd2, &t2, sizeof(struct Tarefa));
-                        close(log_fd2);
+                        t.tempoReal = (int)elapsedTime;
+                        t.estado = 2;
+                        lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
+                        write(log_fd, &t, sizeof(struct Tarefa));
+                        close(log_fd);
                         perror("ola lorem");
                     }
                 }
