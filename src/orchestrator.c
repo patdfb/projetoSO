@@ -14,7 +14,7 @@
 #define MAX_COMMAND 300
 #define LOG "tmp/log.txt"
 
-void exec_command_multi(char* arg){
+void exec_command_multi(char* arg, int ID){
     
 	char *exec_args[MAX_COMMAND];
 	char *string;	
@@ -32,13 +32,13 @@ void exec_command_multi(char* arg){
 	}
 
     for (int j=0;j<i;j++) {
-        exec_command(exec_args[j]);
+        exec_command(exec_args[j],ID);
         wait(NULL);
     }
 
 }    
 
-void exec_command(char* arg){
+void exec_command(char* arg,int ID){
     
 	char *exec_args[MAX_COMMAND];
     int fd;
@@ -46,7 +46,13 @@ void exec_command(char* arg){
 	int exec_ret = 0;
 	int i=0;
     int outfd = dup(STDOUT_FILENO);
-
+    char out[50] = "tmp/";
+    char idstring[10];
+    sprintf(idstring, "%d",ID);
+    strcat(out,idstring);
+    strcat(out,".txt");
+    fd = open(out, O_CREAT | O_WRONLY | O_APPEND, 0660);
+    dup2(fd,STDOUT_FILENO);
 	char* command = strdup(arg);
 
 	string=strtok(command," ");
@@ -63,14 +69,11 @@ void exec_command(char* arg){
     exec_args[0] = pontoBarra;
     
 	exec_args[i]=NULL;
-    fd = open("tmp/out.txt", O_CREAT | O_WRONLY | O_APPEND, 0660);
-    dup2(fd,STDOUT_FILENO);
     pid_t forked = fork();
     if (forked == 0) {
 	    exec_ret=execv(exec_args[0],exec_args);
     }
     dup2(outfd,fd);
-
 }
 
 void status(pid_t pid) {
@@ -377,9 +380,9 @@ int main(int argc, char* argv[]) {
                     int tID = t.ID;
                     perror("adeus loren");
                     if (t.multi == 0) {
-                        exec_command(t.argumento);
+                        exec_command(t.argumento,t.ID);
                     } else if (t.multi == 1) {
-                        exec_command_multi(t.argumento);
+                        exec_command_multi(t.argumento,t.ID);
                     }
                     int status;
                     wait(&status);
