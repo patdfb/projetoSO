@@ -73,7 +73,7 @@ void exec_command(char* arg){
 
 }
 
-int status(pid_t pid) {
+void status(pid_t pid) {
     int log_fd = open(LOG, O_RDONLY);
     struct Tarefa completed[MAX_COMMAND];
     struct Tarefa executing[MAX_COMMAND];
@@ -248,7 +248,7 @@ int status(pid_t pid) {
     close(pipe_fd2);
     unlink(clientID);
 
-    return 0;
+    _exit(0);
 }
 
 
@@ -274,7 +274,7 @@ int main(int argc, char* argv[]) {
     pid_t fork1 = fork();
     if(fork1==0){
         int pipe_fd;
-        
+        struct Tarefa t;
 
         if (mkfifo(FIFO_FILE, 0666) == -1) { // Cria o pipe nomeado
             perror("Erro ao criar FIFO.");
@@ -289,44 +289,43 @@ int main(int argc, char* argv[]) {
                 perror("Erro ao abrir fifofile.");
                 _exit(EXIT_FAILURE);
             }
-            struct Tarefa t;
+
             read(pipe_fd, &t, sizeof(struct Tarefa));
             if (strcmp(t.argumento,"status") == 0) {
                 int forkou = fork();
                 if (forkou == 0) {
-                    status(t.pid);
+                   status(t.pid);
                 }
-                continue;
+            } else {
+                log_fd = open(LOG, O_WRONLY | O_APPEND);
+                t.ID = pos;
+                t.estado = 0;
+                write(log_fd, &t, sizeof(struct Tarefa));
+                close(log_fd);
+
+                char taskID[10];
+                char clientID[20];
+                for (int i=0;i<20;i++) {
+                    clientID[i] = '\0';
+                }
+                char printable[50] = "TASK ";
+
+                for (int i=0;i<10;i++) {
+                    taskID[i] = '\0';
+                }
+                sprintf(clientID, "%d", t.pid);
+                sprintf(taskID, "%d", pos);
+                strcat(printable,taskID);
+                strcat(printable," Received\n");
+
+                int pipe_fd2 = open(clientID, O_WRONLY); 
+
+                write(pipe_fd2, printable, sizeof(printable));
+
+                close(pipe_fd2);
+                unlink(clientID);
+                pos++;
             }
-            log_fd = open(LOG, O_WRONLY | O_APPEND);
-            t.ID = pos;
-            t.estado = 0;
-            write(log_fd, &t, sizeof(struct Tarefa));
-            close(log_fd);
-
-            char taskID[10];
-            char clientID[20];
-            for (int i=0;i<20;i++) {
-                clientID[i] = '\0';
-            }
-            char printable[50] = "TASK ";
-
-            for (int i=0;i<10;i++) {
-                taskID[i] = '\0';
-            }
-            sprintf(clientID, "%d", t.pid);
-            sprintf(taskID, "%d", pos);
-            strcat(printable,taskID);
-            strcat(printable," Received\n");
-
-            int pipe_fd2 = open(clientID, O_WRONLY); 
-
-            write(pipe_fd2, printable, sizeof(printable));
-
-            close(pipe_fd2);
-            unlink(clientID);
-
-            pos++;
         }
         
 
