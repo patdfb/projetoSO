@@ -82,7 +82,16 @@ int execute_multi(char* argumentos[], int n){
 
 int execute_uni(struct Tarefa t) {
 
-    int pipe_fd; 
+    int pipe_fd,pipe_fd2;
+    char clientID[20];
+    for (int i=0;i<20;i++) {
+        clientID[i] = '\0';
+    }
+    sprintf(clientID, "%d", t.pid);
+    if (mkfifo(clientID, 0666) == -1) { 
+        perror("Erro ao criar FIFO.");
+        _exit(EXIT_FAILURE);
+    }
 
     pipe_fd = open(FIFO_FILE, O_WRONLY); // Abre o pipe nomeado em modo escrita
     if (pipe_fd == -1) {
@@ -94,16 +103,19 @@ int execute_uni(struct Tarefa t) {
 
     close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
 
-    pipe_fd = open(FIFO_FILE, O_RDONLY); // Abre o pipe nomeado em modo leitura para receber a resposta do servidor (ID?????)
-    if (pipe_fd == -1) {
+    pipe_fd2 = open(clientID,O_RDONLY); // Abre o pipe nomeado em modo leitura para receber a resposta do servidor (ID?????)
+    if (pipe_fd2 == -1) {
         perror("Erro ao abrir.");
         _exit(EXIT_FAILURE);
     }
 
-    char buf[MAX_COMMAND];
-    ssize_t r = read(pipe_fd, &buf, MAX_COMMAND); // assim?????? + perror
+    char buf[50];
+    ssize_t r = read(pipe_fd2, &buf, sizeof(buf)); // assim?????? + perror
 
-    close(pipe_fd);
+    write(1,&buf,sizeof(buf));
+
+    close(pipe_fd2);
+    unlink(clientID);
 
     return 0;
 }
@@ -115,7 +127,8 @@ int main(int argc, char* argv[]) {
 
     if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-u") == 0) { // execute time -u "prog-a [args]"
         strcpy(t.argumento, argv[4]);
-        t.tempo = atoi(argv[2]);
+        t.tempoEstimado = atoi(argv[2]);
+        t.tempoReal = 0;
         t.ID = 0;
         t.estado = 0;
         t.pid = getpid();
@@ -159,30 +172,37 @@ int main(int argc, char* argv[]) {
                 completed[c2].estado = t.estado;
                 completed[c2].ID = t.ID;
                 strcpy(completed[c2].argumento, t.argumento);
-                completed[c2].tempo = t.tempo;
+                completed[c2].tempoEstimado = t.tempoEstimado;
+                completed[c2].tempoReal = t.tempoReal;
                 completed[c2].pid = t.pid;
                 c2++;
             } else if(estado == 1){
                 executing[c1].estado = t.estado;
                 executing[c1].ID = t.ID;
                 strcpy(executing[c1].argumento, t.argumento);
-                executing[c1].tempo = t.tempo;
-                executing[c1].pid = t.pid;
+                executing[c1].tempoEstimado = t.tempoEstimado;
+                completed[c1].tempoReal = t.tempoReal;
+                completed[c1].pid = t.pid;
                 c1++;
             } else if(estado == 0){
                 scheduled[c0].estado = t.estado;
                 scheduled[c0].ID = t.ID;
                 strcpy(scheduled[c0].argumento, t.argumento);
-                scheduled[c0].tempo = t.tempo;
-                scheduled[c0].pid = t.pid;
+                scheduled[c0].tempoEstimado = t.tempoEstimado;
+                completed[c0].tempoReal = t.tempoReal;
+                completed[c0].pid = t.pid;
                 c0++;
             }
         }
         close(log_fd);
         char tamanho[11] = "Executing\n";
         char tudo[MAX_COMMAND];
+        int i;
+        for (i=0;i<MAX_COMMAND;i++) {
+            tudo[i] = '\0';
+        }
         write(1, "Executing\n", sizeof(tamanho));
-        for(int i=0; i<c1; i++){
+        for(i=0; i<c1; i++){
             t = executing[i];
             sprintf(tudo, "%d", t.ID); //transforma int em string
             strcat(tudo, " ");
@@ -194,7 +214,7 @@ int main(int argc, char* argv[]) {
         }
 
         write(1, "\nScheduled\n", sizeof(tamanho));
-        for(int i=0; i<c0; i++){
+        for(i=0; i<c0; i++){
             t = scheduled[i];
             sprintf(tudo, "%d", t.ID); //transforma int em string
             strcat(tudo, " ");
@@ -206,7 +226,7 @@ int main(int argc, char* argv[]) {
         }
 
         write(1, "\nCompleted\n", sizeof(tamanho));
-        for(int i=0; i<c2; i++){
+        for(i=0; i<c2; i++){
             t = completed[i];
             sprintf(tudo, "%d", t.ID); //transforma int em string
             strcat(tudo, " ");
@@ -214,10 +234,10 @@ int main(int argc, char* argv[]) {
             comando = strtok(t.argumento, " ");
             strcat(tudo, comando);
             char Tempo[30];
-            sprintf(Tempo, "%d", t.tempo);
+            sprintf(Tempo, "%d", t.tempoReal);
             strcat(tudo, " ");
             strcat(tudo, Tempo);
-            strcat(tudo, "\n");
+            strcat(tudo, " ms\n");
             write(1, tudo, sizeof(tudo));
         }
 
