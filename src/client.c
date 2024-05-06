@@ -159,8 +159,13 @@ int main(int argc, char* argv[]) {
                 completed[c2].estado = t.estado;
                 completed[c2].ID = t.ID;
 <<<<<<< HEAD
+<<<<<<< HEAD
                 completed[c2].tempoEstimado = t.tempoEstimado;
                 completed[c2].tempoReal = t.tempoReal;
+=======
+                strcpy(completed[c2].argumento, t.argumento);
+                completed[c2].tempo = t.tempo;
+>>>>>>> parent of d0ed313 (tenho medo do computador crashar)
 =======
                 strcpy(completed[c2].argumento, t.argumento);
                 completed[c2].tempo = t.tempo;
@@ -172,10 +177,16 @@ int main(int argc, char* argv[]) {
                 executing[c1].estado = t.estado;
                 executing[c1].ID = t.ID;
 <<<<<<< HEAD
+<<<<<<< HEAD
                 executing[c1].tempoEstimado = t.tempoEstimado;
                 completed[c1].tempoReal = t.tempoReal;
                 completed[c1].pid = t.pid;
                 strcpy(executing[c1].argumento, t.argumento);
+=======
+                strcpy(executing[c1].argumento, t.argumento);
+                executing[c1].tempo = t.tempo;
+                executing[c1].pid = t.pid;
+>>>>>>> parent of d0ed313 (tenho medo do computador crashar)
 =======
                 strcpy(executing[c1].argumento, t.argumento);
                 executing[c1].tempo = t.tempo;
@@ -186,10 +197,16 @@ int main(int argc, char* argv[]) {
                 scheduled[c0].estado = t.estado;
                 scheduled[c0].ID = t.ID;
 <<<<<<< HEAD
+<<<<<<< HEAD
                 scheduled[c0].tempoEstimado = t.tempoEstimado;
                 completed[c0].tempoReal = t.tempoReal;
                 completed[c0].pid = t.pid;
                 strcpy(scheduled[c0].argumento, t.argumento);
+=======
+                strcpy(scheduled[c0].argumento, t.argumento);
+                scheduled[c0].tempo = t.tempo;
+                scheduled[c0].pid = t.pid;
+>>>>>>> parent of d0ed313 (tenho medo do computador crashar)
 =======
                 strcpy(scheduled[c0].argumento, t.argumento);
                 scheduled[c0].tempo = t.tempo;

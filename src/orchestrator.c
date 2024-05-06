@@ -110,6 +110,7 @@ int main(int argc, char* argv[]) {
         
     } else{
 <<<<<<< HEAD
+<<<<<<< HEAD
         int c=0,i=0,p,maxp =0;
         struct Tarefa lista[1024];
         int tarefados[max];
@@ -232,6 +233,50 @@ int main(int argc, char* argv[]) {
                         close(log_fd);
                     }
                 }
+=======
+        int c=0;
+        while(1){
+            int bytes_read;
+            log_fd = open(LOG, O_RDWR);
+            if(log_fd==-1){
+                perror("Erro ao abrir o log.");
+            }
+            while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0 && t.estado!=0);
+            if(bytes_read != 0){
+                pid_t fork2 = fork();
+                if(fork2==0){
+                    perror("5");
+                    t.estado = 1;
+                    lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
+                    perror("6");
+                    write(log_fd, &t, sizeof(struct Tarefa));
+                    perror("7");
+                    write(1, t.argumento, sizeof(t.argumento));
+                    int res = exec_command(t.argumento);
+                    perror("8");
+                    close(log_fd);
+                    _exit(t.ID);
+                    
+                } else{
+                    perror("9");
+                    int status;
+                    wait(&status);
+                    if(WIFEXITED(status)){
+                        perror("10");
+                        int bytes_read;
+                        log_fd = open(LOG, O_RDWR);
+                            if(log_fd==-1){
+                            perror("Erro ao abrir o log.");
+                        }
+                        int result = WEXITSTATUS(status);
+                        while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0 && t.ID!=result);
+                        t.estado = 2;
+                        lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
+                        write(log_fd, &t, sizeof(struct Tarefa));
+                        close(log_fd);
+                    }
+                }
+>>>>>>> parent of d0ed313 (tenho medo do computador crashar)
                 c++;
                 if(c==max){
                     wait(NULL);
@@ -240,6 +285,9 @@ int main(int argc, char* argv[]) {
             }
             close(log_fd);
 
+<<<<<<< HEAD
+>>>>>>> parent of d0ed313 (tenho medo do computador crashar)
+=======
 >>>>>>> parent of d0ed313 (tenho medo do computador crashar)
         }
 
