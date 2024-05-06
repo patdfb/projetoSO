@@ -6,9 +6,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <sys/wait.h>
 #include "struct.h"
-#include <time.h>
 
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
@@ -16,14 +14,13 @@
 
 
 
-void exec_command(char* arg){
+int exec_command(char* arg){
     
 	char *exec_args[MAX_COMMAND];
-    int fd;
+
 	char *string;	
 	int exec_ret = 0;
 	int i=0;
-    int outfd = dup(STDOUT_FILENO);
 
 	char* command = strdup(arg);
 
@@ -41,14 +38,10 @@ void exec_command(char* arg){
     exec_args[0] = pontoBarra;
     
 	exec_args[i]=NULL;
-    fd = open("tmp/out.txt", O_CREAT | O_WRONLY | O_APPEND, 0660);
-    dup2(fd,STDOUT_FILENO);
-    pid_t forked = fork();
-    if (forked == 0) {
-	    exec_ret=execv(exec_args[0],exec_args);
-    }
-    dup2(outfd,fd);
 
+	exec_ret=execv(exec_args[0],exec_args);
+
+	return exec_ret;
 }
 
 int status() {
@@ -66,6 +59,7 @@ int main(int argc, char* argv[]) {
     unlink(FIFO_FILE);
 
     int ligado = 1;
+    struct Tarefa t;
 
 
     int log_fd = open(LOG, O_CREAT , 0640);
@@ -73,57 +67,36 @@ int main(int argc, char* argv[]) {
         perror("Erro ao abrir o log.");
     }
 
+    perror("758");
     close(log_fd);
 
     pid_t fork1 = fork();
+    perror("1");
     if(fork1==0){
         int pipe_fd;
         
+        perror("2");
 
         if (mkfifo(FIFO_FILE, 0666) == -1) { // Cria o pipe nomeado
             perror("Erro ao criar FIFO.");
             _exit(EXIT_FAILURE);
         }
-
         int pos = 1;
-
+        perror("3");
         while(ligado){
             pipe_fd = open(FIFO_FILE, O_RDONLY); // Abre o pipe nomeado em modo leitura
             if (pipe_fd == -1) {
                 perror("Erro ao abrir.");
                 _exit(EXIT_FAILURE);
             }
-            struct Tarefa t;
+
             read(pipe_fd, &t, sizeof(struct Tarefa));
             log_fd = open(LOG, O_WRONLY | O_APPEND);
-            t.ID = pos;
+            t.ID = pos++;
             t.estado = 0;
             write(log_fd, &t, sizeof(struct Tarefa));
             close(log_fd);
-
-            char taskID[10];
-            char clientID[20];
-            for (int i=0;i<20;i++) {
-                clientID[i] = '\0';
-            }
-            char printable[50] = "TASK ";
-
-            for (int i=0;i<10;i++) {
-                taskID[i] = '\0';
-            }
-            sprintf(clientID, "%d", t.pid);
-            sprintf(taskID, "%d", pos);
-            strcat(printable,taskID);
-            strcat(printable," Received\n");
-
-            int pipe_fd2 = open(clientID, O_WRONLY); 
-
-            write(pipe_fd2, printable, sizeof(printable));
-
-            close(pipe_fd2);
-            unlink(clientID);
-
-            pos++;
+            
         }
         
 
@@ -136,6 +109,7 @@ int main(int argc, char* argv[]) {
         unlink(FIFO_FILE);
         
     } else{
+<<<<<<< HEAD
         int c=0,i=0,p,maxp =0;
         struct Tarefa lista[1024];
         int tarefados[max];
@@ -215,6 +189,58 @@ int main(int argc, char* argv[]) {
             }
             close(log_fd);
                     
+=======
+        int c=0;
+        while(1){
+            int bytes_read;
+            log_fd = open(LOG, O_RDWR);
+            if(log_fd==-1){
+                perror("Erro ao abrir o log.");
+            }
+            while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0 && t.estado!=0);
+            if(bytes_read != 0){
+                pid_t fork2 = fork();
+                if(fork2==0){
+                    perror("5");
+                    t.estado = 1;
+                    lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
+                    perror("6");
+                    write(log_fd, &t, sizeof(struct Tarefa));
+                    perror("7");
+                    write(1, t.argumento, sizeof(t.argumento));
+                    int res = exec_command(t.argumento);
+                    perror("8");
+                    close(log_fd);
+                    _exit(t.ID);
+                    
+                } else{
+                    perror("9");
+                    int status;
+                    wait(&status);
+                    if(WIFEXITED(status)){
+                        perror("10");
+                        int bytes_read;
+                        log_fd = open(LOG, O_RDWR);
+                            if(log_fd==-1){
+                            perror("Erro ao abrir o log.");
+                        }
+                        int result = WEXITSTATUS(status);
+                        while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0 && t.ID!=result);
+                        t.estado = 2;
+                        lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
+                        write(log_fd, &t, sizeof(struct Tarefa));
+                        close(log_fd);
+                    }
+                }
+                c++;
+                if(c==max){
+                    wait(NULL);
+                    c--;
+                }
+            }
+            close(log_fd);
+
+>>>>>>> parent of d0ed313 (tenho medo do computador crashar)
         }
 
     }
