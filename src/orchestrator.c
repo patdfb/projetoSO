@@ -12,9 +12,8 @@
 
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
-#define LOG "tmp/log.txt"
 
-void exec_command_multi(char* arg, int ID){
+void exec_command_multi(char* arg, int ID, char* output_folder){
     
 	char *exec_args[MAX_COMMAND];
 	char *string;	
@@ -32,21 +31,27 @@ void exec_command_multi(char* arg, int ID){
 	}
 
     for (int j=0;j<i;j++) {
-        exec_command(exec_args[j],ID);
+        exec_command(exec_args[j],ID,output_folder);
         wait(NULL);
     }
 
 }    
 
-void exec_command(char* arg,int ID){
-    
+void exec_command(char* arg,int ID, char* output_folder){
+    char LOG[30];
+    memset(LOG,0,sizeof(LOG));
+    strcpy(LOG,output_folder);
+    strcat(LOG,"/log.txt");
 	char *exec_args[MAX_COMMAND];
     int fd;
 	char *string;	
 	int exec_ret = 0;
 	int i=0;
     int outfd = dup(STDOUT_FILENO);
-    char out[50] = "tmp/";
+    char out[30];
+    memset(out,'\0',sizeof(out));
+    strcpy(out,output_folder);
+    strcat(out,"/"); 
     char idstring[10];
     sprintf(idstring, "%d",ID);
     strcat(out,idstring);
@@ -56,27 +61,33 @@ void exec_command(char* arg,int ID){
 	char* command = strdup(arg);
 
 	string=strtok(command," ");
-	
-    char pontoBarra[MAX_COMMAND] = "include/"; 
+	perror("1");
+    char pontoBarra[30];
+    strcpy(pontoBarra,"include/");
     strcat(pontoBarra, string);
-
+    perror("2");
 	while(string!=NULL){
         exec_args[i]=string;
 		string=strtok(NULL," ");
 		i++;
 	}
-
+    perror("3");
     exec_args[0] = pontoBarra;
-    
+    perror("4");
 	exec_args[i]=NULL;
     pid_t forked = fork();
     if (forked == 0) {
+        perror("5");
 	    exec_ret=execv(exec_args[0],exec_args);
     }
     dup2(outfd,fd);
 }
 
-void status(pid_t pid) {
+void status(pid_t pid,char* output_folder) {
+    char LOG[30];
+    memset(LOG,0,sizeof(LOG));
+    strcpy(LOG,output_folder);
+    strcat(LOG,"/log.txt");
     int log_fd = open(LOG, O_RDONLY);
     struct Tarefa completed[MAX_COMMAND];
     struct Tarefa executing[MAX_COMMAND];
@@ -261,6 +272,16 @@ int main(int argc, char* argv[]) {
         _exit(EXIT_FAILURE);
     }
     int max = atoi(argv[2]);
+    char *output_folder = argv[1];
+    if (mkdir(output_folder,S_IRWXU | S_IRWXG | S_IRWXO)==-1) {//READ| WRITE |EXECUTE
+        perror("Erro a criar pasta");
+        _exit(EXIT_FAILURE);
+    }
+
+    char LOG[30];
+    memset(LOG,0,sizeof(LOG));
+    strcpy(LOG,output_folder);
+    strcat(LOG,"/log.txt");
 
     unlink(FIFO_FILE);
 
@@ -269,7 +290,7 @@ int main(int argc, char* argv[]) {
 
     int log_fd = open(LOG, O_CREAT , 0640);
     if(log_fd==-1){
-        perror("Erro ao abrir o log.");
+        perror("Erro ao criar o log.");
     }
 
     close(log_fd);
@@ -297,7 +318,7 @@ int main(int argc, char* argv[]) {
             if (strcmp(t.argumento,"status") == 0) {
                 int forkou = fork();
                 if (forkou == 0) {
-                   status(t.pid);
+                   status(t.pid,output_folder);
                 }
             } else {
                 log_fd = open(LOG, O_WRONLY | O_APPEND);
@@ -331,12 +352,7 @@ int main(int argc, char* argv[]) {
             }
         }
         
-
-        //colocar a começar a contar o tempo de execução da tarefa
-
-        // Escreve no log o estado de execução + o tempo demorado
-
-        // ESCALONAMENTO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        rmdir(output_folder);
         close(pipe_fd);
         unlink(FIFO_FILE);
         
@@ -353,6 +369,7 @@ int main(int argc, char* argv[]) {
             log_fd = open(LOG, O_RDONLY);
             if(log_fd==-1){
                 perror("Erro ao abrir o log.");
+                _exit(EXIT_FAILURE);
             }
             while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0) {
                 for(c=0;c<max;c++){
@@ -380,9 +397,9 @@ int main(int argc, char* argv[]) {
                     int tID = t.ID;
                     perror("adeus loren");
                     if (t.multi == 0) {
-                        exec_command(t.argumento,t.ID);
+                        exec_command(t.argumento,t.ID,output_folder);
                     } else if (t.multi == 1) {
-                        exec_command_multi(t.argumento,t.ID);
+                        exec_command_multi(t.argumento,t.ID,output_folder);
                     }
                     int status;
                     wait(&status);
