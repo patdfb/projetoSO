@@ -3,17 +3,16 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/wait.h>
 #include "struct.h"
+#include <time.h>
 
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
 #define LOG "tmp/log.txt"
-
-
-
-
-
-
 
 
 int execute_uni(struct Tarefa t) {
@@ -24,6 +23,7 @@ int execute_uni(struct Tarefa t) {
         clientID[i] = '\0';
     }
     sprintf(clientID, "%d", t.pid);
+
     if (mkfifo(clientID, 0666) == -1) { 
         perror("Erro ao criar FIFO.");
         _exit(EXIT_FAILURE);
@@ -35,7 +35,7 @@ int execute_uni(struct Tarefa t) {
         _exit(EXIT_FAILURE);
     }
 
-    ssize_t w = write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
+    write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
 
     close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
 
@@ -46,7 +46,7 @@ int execute_uni(struct Tarefa t) {
     }
 
     char buf[50];
-    ssize_t r = read(pipe_fd2, &buf, sizeof(buf)); // assim?????? + perror
+    read(pipe_fd2, &buf, sizeof(buf)); // assim?????? + perror
 
     write(1,&buf,sizeof(buf));
 
@@ -58,7 +58,6 @@ int execute_uni(struct Tarefa t) {
 
 int main(int argc, char* argv[]) {
 
-    char buff[MAX_COMMAND];
     struct Tarefa t;
 
     if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-u") == 0) { // execute time -u "prog-a [args]"
@@ -93,7 +92,6 @@ int main(int argc, char* argv[]) {
         char clientID[20];
         int pipe_fd,pipe_fd2;
         struct Tarefa t;
-        ssize_t r;
 
         strcpy(t.argumento,"status");
         t.pid = getpid();
@@ -113,7 +111,7 @@ int main(int argc, char* argv[]) {
             _exit(EXIT_FAILURE);
         }
 
-        ssize_t w = write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
+        write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
 
         close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
 
@@ -128,7 +126,7 @@ int main(int argc, char* argv[]) {
             linha[i] = '\0';
         }
 
-        r = read(pipe_fd2, linha, sizeof(linha));
+        read(pipe_fd2, linha, sizeof(linha));
         write(1,linha,sizeof(linha));
 
         
@@ -145,7 +143,7 @@ int main(int argc, char* argv[]) {
             _exit(EXIT_FAILURE);
         }
 
-        ssize_t w = write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
+        write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
 
         close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
 

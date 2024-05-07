@@ -15,32 +15,6 @@
 #define MAX_COMMAND 300
 
 
-
-
-void exec_command_multi(char* arg, int ID, char* output_folder){
-    
-	char *exec_args[MAX_COMMAND];
-	char *string;	
-	int i=0;
-
-	char* command = strdup(arg);
-
-	string=strtok(command,"|");
-
-
-	while(string!=NULL){
-        exec_args[i]=string;
-		string=strtok(NULL,"|");
-		i++;
-	}
-
-    for (int j=0;j<i;j++) {
-        exec_command(exec_args[j],ID,output_folder);
-        wait(NULL);
-    }
-
-}    
-
 void exec_command(char* arg,int ID, char* output_folder){
     char LOG[30];
     memset(LOG,0,sizeof(LOG));
@@ -49,7 +23,6 @@ void exec_command(char* arg,int ID, char* output_folder){
 	char *exec_args[MAX_COMMAND];
     int fd;
 	char *string;	
-	int exec_ret = 0;
 	int i=0;
     int outfd = dup(STDOUT_FILENO);
     char out[30];
@@ -82,10 +55,35 @@ void exec_command(char* arg,int ID, char* output_folder){
     pid_t forked = fork();
     if (forked == 0) {
 
-	    exec_ret=execv(exec_args[0],exec_args);
+	    execv(exec_args[0],exec_args);
+
     }
     dup2(outfd,fd);
 }
+
+void exec_command_multi(char* arg, int ID, char* output_folder){
+    
+	char *exec_args[MAX_COMMAND];
+	char *string;	
+	int i=0;
+
+	char* command = strdup(arg);
+
+	string=strtok(command,"|");
+
+
+	while(string!=NULL){
+        exec_args[i]=string;
+		string=strtok(NULL,"|");
+		i++;
+	}
+
+    for (int j=0;j<i;j++) {
+        exec_command(exec_args[j],ID,output_folder);
+        wait(NULL);
+    }
+
+}    
 
 void status(pid_t pid,char* output_folder) {
     char LOG[30];
@@ -380,7 +378,7 @@ int main(int argc, char* argv[]) {
         unlink(FIFO_FILE);
         
     } else{
-        int c=0,p;
+        int c=0;
         int ligado = 1;
         char *contador = "tmp/contador.txt";
         int cont_fd;
@@ -432,8 +430,7 @@ int main(int argc, char* argv[]) {
             }
             if(bytes_read != 0 && t.estado == 0){
                 cont_fd = open(contador,O_RDWR);
-                while((conts_read = read(cont_fd,&lido,sizeof(lido)))>0 && lido != 0)
-                write(1,&lido,sizeof(lido));
+                while((conts_read = read(cont_fd,&lido,sizeof(lido)))>0 && lido != 0);
                 if (lido == 0) {
                     lseek(cont_fd,-sizeof(lido),SEEK_CUR);
                     write(cont_fd,&t.ID,sizeof(lido));
@@ -458,11 +455,11 @@ int main(int argc, char* argv[]) {
                     wait(&status);
                     if(WIFEXITED(status)){
                         cont_fd = open(contador,O_RDWR);
-                        while(conts_read = read(cont_fd,&lido,sizeof(lido))>0 && lido != tID);
+                        while((conts_read = read(cont_fd,&lido,sizeof(lido)))>0 && lido != tID);
                         int zerou2 = 0;
                         if (lido == tID) {
                             lseek(cont_fd,-sizeof(lido),SEEK_CUR);
-                            write(cont_fd,&zerou2,sizeof(zerou));
+                            write(cont_fd,&zerou2,sizeof(zerou2));
                         }
                         close(cont_fd);
                         struct Tarefa t2;
