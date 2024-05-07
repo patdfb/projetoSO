@@ -146,7 +146,7 @@ void status(pid_t pid,char* output_folder) {
         tudo[i] = '\0';
     }
 
-    int pipe_fd2 = open(clientID,O_WRONLY); // Abre o pipe nomeado em modo leitura para receber a resposta do servidor (ID?????)
+    int pipe_fd2 = open(clientID,O_WRONLY); 
     if (pipe_fd2 == -1) {
         _exit(EXIT_FAILURE);
     }
@@ -154,7 +154,7 @@ void status(pid_t pid,char* output_folder) {
     strcat(listas,"Executing\n");
     for(i=0; i<c1; i++){
         t = executing[i];
-        sprintf(tudo, "%d", t.ID); //transforma int em string
+        sprintf(tudo, "%d", t.ID); 
         strcat(tudo, " ");
         if (t.multi == 0) {
             char *comando;
@@ -189,7 +189,7 @@ void status(pid_t pid,char* output_folder) {
     strcat(listas,"\nScheduled\n");
     for(i=0; i<c0; i++){
         t = scheduled[i];
-        sprintf(tudo, "%d", t.ID); //transforma int em string
+        sprintf(tudo, "%d", t.ID); 
         strcat(tudo, " ");
         if (t.multi == 0) {
             char *comando;
@@ -224,7 +224,7 @@ void status(pid_t pid,char* output_folder) {
     strcat(listas,"\nCompleted\n");
     for(i=0; i<c2; i++){
         t = completed[i];
-        sprintf(tudo, "%d", t.ID); //transforma int em string
+        sprintf(tudo, "%d", t.ID); 
         strcat(tudo, " ");
         if (t.multi == 0) {
             char *comando;
@@ -314,7 +314,7 @@ int main(int argc, char* argv[]) {
         int pipe_fd;
         struct Tarefa t;
 
-        if (mkfifo(FIFO_FILE, 0666) == -1) { // Cria o pipe nomeado
+        if (mkfifo(FIFO_FILE, 0666) == -1) { 
             perror("Erro ao criar FIFO.");
             _exit(EXIT_FAILURE);
         }
@@ -322,7 +322,7 @@ int main(int argc, char* argv[]) {
         int pos = 1;
 
         while(ligado){
-            pipe_fd = open(FIFO_FILE, O_RDONLY); // Abre o pipe nomeado em modo leitura
+            pipe_fd = open(FIFO_FILE, O_RDONLY); 
             if (pipe_fd == -1) {
                 perror("Erro ao abrir fifofile.");
                 _exit(EXIT_FAILURE);

@@ -29,24 +29,24 @@ int execute_uni(struct Tarefa t) {
         _exit(EXIT_FAILURE);
     }
 
-    pipe_fd = open(FIFO_FILE, O_WRONLY); // Abre o pipe nomeado em modo escrita
+    pipe_fd = open(FIFO_FILE, O_WRONLY);
     if (pipe_fd == -1) {
         perror("Erro ao abrir.");
         _exit(EXIT_FAILURE);
     }
 
-    write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
+    write(pipe_fd, &t, sizeof(struct Tarefa)); 
 
-    close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
+    close(pipe_fd); 
 
-    pipe_fd2 = open(clientID,O_RDONLY); // Abre o pipe nomeado em modo leitura para receber a resposta do servidor (ID?????)
+    pipe_fd2 = open(clientID,O_RDONLY); 
     if (pipe_fd2 == -1) {
         perror("Erro ao abrir.");
         _exit(EXIT_FAILURE);
     }
 
     char buf[50];
-    read(pipe_fd2, &buf, sizeof(buf)); // assim?????? + perror
+    read(pipe_fd2, &buf, sizeof(buf)); 
 
     write(1,&buf,sizeof(buf));
 
@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
 
     struct Tarefa t;
 
-    if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-u") == 0) { // execute time -u "prog-a [args]"
+    if (strcmp(argv[1], "execute") == 0 && strcmp(argv[3], "-u") == 0) { 
         strcpy(t.argumento, argv[4]);
         t.tempoEstimado = atoi(argv[2]);
         t.tempoReal = 0;
@@ -102,20 +102,19 @@ int main(int argc, char* argv[]) {
         sprintf(clientID, "%d", t.pid);
         if (mkfifo(clientID, 0666) == -1) { 
             perror("Erro ao criar FIFO.");
-            //_exit(EXIT_FAILURE);
         }
 
-        pipe_fd = open(FIFO_FILE, O_WRONLY); // Abre o pipe nomeado em modo escrita
+        pipe_fd = open(FIFO_FILE, O_WRONLY); 
         if (pipe_fd == -1) {
             perror("Erro ao abrir fifo11.");
             _exit(EXIT_FAILURE);
         }
 
-        write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
+        write(pipe_fd, &t, sizeof(struct Tarefa)); 
 
-        close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
+        close(pipe_fd); 
 
-        pipe_fd2 = open(clientID,O_RDONLY); // Abre o pipe nomeado em modo leitura para receber a resposta do servidor (ID?????)
+        pipe_fd2 = open(clientID,O_RDONLY); 
         if (pipe_fd2 == -1) {
             perror("Erro ao abrir fifo2.");
             _exit(EXIT_FAILURE);
@@ -137,15 +136,15 @@ int main(int argc, char* argv[]) {
 
         strcpy(t.argumento,"shutdown");
 
-        int pipe_fd = open(FIFO_FILE, O_WRONLY); // Abre o pipe nomeado em modo escrita
+        int pipe_fd = open(FIFO_FILE, O_WRONLY); 
         if (pipe_fd == -1) {
             perror("Erro ao abrir fifo11.");
             _exit(EXIT_FAILURE);
         }
 
-        write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
+        write(pipe_fd, &t, sizeof(struct Tarefa));
 
-        close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
+        close(pipe_fd); 
 
     }
     return 0;

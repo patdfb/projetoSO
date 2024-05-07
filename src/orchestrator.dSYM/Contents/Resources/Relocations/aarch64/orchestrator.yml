@@ -1,9 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     '/Users/patriciabastos/Documents/universidade/SO/projetoSO/src/orchestrator'
-relocations:
-  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _exec_command, symObjAddr: 0x0, symBinAddr: 0x10000355C, symSize: 0x244 }
-  - { offsetInCU: 0x4D, offset: 0x4D, size: 0x8, addend: 0x0, symName: _exec_command, symObjAddr: 0x0, symBinAddr: 0x10000355C, symSize: 0x244 }
-  - { offsetInCU: 0xE8, offset: 0xE8, size: 0x8, addend: 0x0, symName: _status, symObjAddr: 0x244, symBinAddr: 0x1000037A0, symSize: 0x8 }
-  - { offsetInCU: 0x101, offset: 0x101, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x24C, symBinAddr: 0x1000037A8, symSize: 0x514 }
-...
