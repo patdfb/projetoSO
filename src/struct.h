@@ -4,6 +4,7 @@ struct Tarefa{
     char argumento[300];
     int tempoEstimado;
     int tempoReal;
+    struct timeval startTime;
     int multi;
     __pid_t pid;
 };

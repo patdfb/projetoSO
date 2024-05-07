@@ -343,9 +343,12 @@ int main(int argc, char* argv[]) {
                 write(log_fd, &t, sizeof(struct Tarefa));
                 close(log_fd);
             } else {
+                struct timeval start;
+                gettimeofday(&start,NULL);
                 log_fd = open(LOG, O_WRONLY | O_APPEND);
                 t.ID = pos;
                 t.estado = 0;
+                t.startTime = start;
                 write(log_fd, &t, sizeof(struct Tarefa));
                 close(log_fd);
 
@@ -442,9 +445,8 @@ int main(int argc, char* argv[]) {
                 close(log_fd);
                 pid_t fork2 = fork();
                 if(fork2==0){
-                    struct timeval start,end;
+                    struct timeval end;
                     double elapsedTime;
-                    gettimeofday(&start,NULL);
                     int tID = t.ID;
                     if (t.multi == 0) {
                         exec_command(t.argumento,t.ID,output_folder);
@@ -466,8 +468,8 @@ int main(int argc, char* argv[]) {
                         int log_fd2 = open(LOG, O_RDWR);
                         while((bytes_read = read(log_fd2, &t2, sizeof(struct Tarefa)))>0 && t2.ID!=tID);
                         gettimeofday(&end,NULL);
-                        elapsedTime = (end.tv_sec - start.tv_sec) * 1000.0;
-                        elapsedTime += (end.tv_usec - start.tv_usec) / 1000.0;
+                        elapsedTime = (end.tv_sec - t2.startTime.tv_sec) * 1000.0;
+                        elapsedTime += (end.tv_usec - t2.startTime.tv_usec) / 1000.0;
                         t2.tempoReal = (int)elapsedTime;
                         t2.estado = 2;
                         lseek(log_fd2, -sizeof(struct Tarefa), SEEK_CUR);
