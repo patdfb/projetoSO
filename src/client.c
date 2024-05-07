@@ -123,8 +123,8 @@ int main(int argc, char* argv[]) {
             _exit(EXIT_FAILURE);
         }
 
-        char linha[MAX_COMMAND*MAX_COMMAND];
-        for (int i=0;i<MAX_COMMAND*MAX_COMMAND;i++) {
+        char linha[MAX_COMMAND];
+        for (int i=0;i<MAX_COMMAND;i++) {
             linha[i] = '\0';
         }
 

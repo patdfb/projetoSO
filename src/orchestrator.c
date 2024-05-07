@@ -142,7 +142,6 @@ void status(pid_t pid,char* output_folder) {
     }
     close(log_fd);
 
-    char tamanho[11] = "Executing\n";
     char tudo[MAX_COMMAND];
     int i;
     for (i=0;i<MAX_COMMAND;i++) {
@@ -382,32 +381,32 @@ int main(int argc, char* argv[]) {
         
     } else{
         int c=0,p;
-        int tarefados[max];
         int ligado = 1;
-        for (c = 0;c<max;c++){
-            tarefados[c]= 0;
+        char *contador = "tmp/contador.txt";
+        int cont_fd;
+        cont_fd = open(contador,O_CREAT | O_WRONLY,0640);
+        int zerou = 0;
+        for (c=0;c<max;c++) {
+            write(cont_fd,&zerou,sizeof(zerou));
         }
+        close(cont_fd);
         while(ligado){
             struct Tarefa t;
             struct Tarefa tmenor;
             int menortempo = 30000;
-            int bytes_read=0;
-            log_fd = open(LOG, O_RDONLY);
-            if(log_fd==-1){
-                perror("Erro ao abrir o log.");
-                _exit(EXIT_FAILURE);
-            }
-            while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0) {
-                for(c=0;c<max;c++){
-                    if(t.ID==tarefados[c] && t.estado==2)tarefados[c] = 0;
+            int bytes_read,conts_read,lido,contando=0;
+
+            cont_fd = open(contador,O_RDONLY);
+            while((conts_read = read(cont_fd,&lido,sizeof(lido)))>0) {
+                if (lido != 0) {
+                    contando++;
                 }
             }
-
-            close(log_fd);
-            p = -1;
-            for(c=0;c<max;c++){
-                if(tarefados[c]==0) p = c;
+            close(cont_fd);
+            if (contando == max) {
+                wait(NULL);
             }
+
             log_fd = open(LOG, O_RDWR);
             if (politica == 1) {
                 while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0 && t.estado!=0);
@@ -431,8 +430,15 @@ int main(int argc, char* argv[]) {
                 ligado = 0;
                 t.estado = 2;
             }
-            if(bytes_read != 0 && p != -1 && t.estado == 0){
-                tarefados[p] = t.ID;
+            if(bytes_read != 0 && t.estado == 0){
+                cont_fd = open(contador,O_RDWR);
+                while((conts_read = read(cont_fd,&lido,sizeof(lido)))>0 && lido != 0)
+                write(1,&lido,sizeof(lido));
+                if (lido == 0) {
+                    lseek(cont_fd,-sizeof(lido),SEEK_CUR);
+                    write(cont_fd,&t.ID,sizeof(lido));
+                }
+                close(cont_fd);
                 t.estado = 1;
                 lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
                 write(log_fd, &t, sizeof(struct Tarefa));
@@ -451,6 +457,14 @@ int main(int argc, char* argv[]) {
                     int status;
                     wait(&status);
                     if(WIFEXITED(status)){
+                        cont_fd = open(contador,O_RDWR);
+                        while(conts_read = read(cont_fd,&lido,sizeof(lido))>0 && lido != tID);
+                        int zerou2 = 0;
+                        if (lido == tID) {
+                            lseek(cont_fd,-sizeof(lido),SEEK_CUR);
+                            write(cont_fd,&zerou2,sizeof(zerou));
+                        }
+                        close(cont_fd);
                         struct Tarefa t2;
                         int log_fd2 = open(LOG, O_RDWR);
                         while((bytes_read = read(log_fd2, &t2, sizeof(struct Tarefa)))>0 && t2.ID!=tID);
