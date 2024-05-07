@@ -10,8 +10,12 @@
 #include "struct.h"
 #include <time.h>
 
+
 #define FIFO_FILE "pipe"
 #define MAX_COMMAND 300
+
+
+
 
 void exec_command_multi(char* arg, int ID, char* output_folder){
     
@@ -61,23 +65,23 @@ void exec_command(char* arg,int ID, char* output_folder){
 	char* command = strdup(arg);
 
 	string=strtok(command," ");
-	perror("1");
+
     char pontoBarra[30];
     strcpy(pontoBarra,"include/");
     strcat(pontoBarra, string);
-    perror("2");
+
 	while(string!=NULL){
         exec_args[i]=string;
 		string=strtok(NULL," ");
 		i++;
 	}
-    perror("3");
+ 
     exec_args[0] = pontoBarra;
-    perror("4");
+
 	exec_args[i]=NULL;
     pid_t forked = fork();
     if (forked == 0) {
-        perror("5");
+
 	    exec_ret=execv(exec_args[0],exec_args);
     }
     dup2(outfd,fd);
@@ -271,8 +275,10 @@ int main(int argc, char* argv[]) {
         perror("Argumentos insuficientes");
         _exit(EXIT_FAILURE);
     }
+    int politica = atoi(argv[3]);//1=FCFS 2=STF
     int max = atoi(argv[2]);
-    char *output_folder = argv[1];
+    char output_folder[30];
+    strcpy(output_folder,argv[1]);
     if (mkdir(output_folder,S_IRWXU | S_IRWXG | S_IRWXO)==-1) {//READ| WRITE |EXECUTE
         perror("Erro a criar pasta");
         _exit(EXIT_FAILURE);
@@ -282,6 +288,10 @@ int main(int argc, char* argv[]) {
     memset(LOG,0,sizeof(LOG));
     strcpy(LOG,output_folder);
     strcat(LOG,"/log.txt");
+
+    char Completed[50];
+    strcpy(Completed,output_folder);
+    strcat(Completed,"/completed.txt");
 
     unlink(FIFO_FILE);
 
@@ -294,6 +304,13 @@ int main(int argc, char* argv[]) {
     }
 
     close(log_fd);
+
+    int cmp_fd = open(Completed, O_CREAT , 0640);
+    if(cmp_fd==-1){
+        perror("Erro ao criar o cmp.");
+    }
+
+    close(cmp_fd);
 
     pid_t fork1 = fork();
     if(fork1==0){
@@ -320,6 +337,14 @@ int main(int argc, char* argv[]) {
                 if (forkou == 0) {
                    status(t.pid,output_folder);
                 }
+            } else if (strcmp(t.argumento,"shutdown") == 0) {
+                ligado = 0;
+                log_fd = open(LOG, O_WRONLY | O_APPEND);
+                t.ID = pos;
+                t.estado = 0;
+                t.tempoEstimado = -1;
+                write(log_fd, &t, sizeof(struct Tarefa));
+                close(log_fd);
             } else {
                 log_fd = open(LOG, O_WRONLY | O_APPEND);
                 t.ID = pos;
@@ -352,20 +377,21 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        rmdir(output_folder);
         close(pipe_fd);
         unlink(FIFO_FILE);
         
     } else{
         int c=0,p;
         int tarefados[max];
-        __clock_t inicio,fim;
+        int ligado = 1;
         for (c = 0;c<max;c++){
             tarefados[c]= 0;
         }
-        while(1){
+        while(ligado){
             struct Tarefa t;
-            int bytes_read;
+            struct Tarefa tmenor;
+            int menortempo = 30000;
+            int bytes_read=0;
             log_fd = open(LOG, O_RDONLY);
             if(log_fd==-1){
                 perror("Erro ao abrir o log.");
@@ -376,26 +402,47 @@ int main(int argc, char* argv[]) {
                     if(t.ID==tarefados[c] && t.estado==2)tarefados[c] = 0;
                 }
             }
+
             close(log_fd);
             p = -1;
             for(c=0;c<max;c++){
-                if(tarefados[c]==0)p = c;
+                if(tarefados[c]==0) p = c;
             }
             log_fd = open(LOG, O_RDWR);
-            while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0 && t.estado!=0);
+            if (politica == 1) {
+                while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0 && t.estado!=0);
+            } else if (politica == 2) {
+                while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0) {
+                    if (t.estado == 0 && t.tempoEstimado < menortempo) {
+                        menortempo = t.tempoEstimado;
+                        tmenor.estado = t.estado;
+                        tmenor.ID = t.ID;
+                        strcpy(tmenor.argumento,t.argumento);
+                        tmenor.tempoEstimado = t.tempoEstimado;
+                        tmenor.tempoReal = t.tempoReal;
+                        tmenor.multi = t.multi;
+                        tmenor.pid = t.pid;
+                    }
+                }
+                lseek(log_fd,0,SEEK_SET);
+                while((bytes_read = read(log_fd, &t, sizeof(struct Tarefa)))>0 && t.ID!=tmenor.ID);
+            }
+            if (strcmp(t.argumento,"shutdown")==0) {
+                ligado = 0;
+                t.estado = 2;
+            }
             if(bytes_read != 0 && p != -1 && t.estado == 0){
+                tarefados[p] = t.ID;
                 t.estado = 1;
                 lseek(log_fd, -sizeof(struct Tarefa), SEEK_CUR);
                 write(log_fd, &t, sizeof(struct Tarefa));
                 close(log_fd);
-                tarefados[p] = t.ID;
                 pid_t fork2 = fork();
                 if(fork2==0){
                     struct timeval start,end;
                     double elapsedTime;
                     gettimeofday(&start,NULL);
                     int tID = t.ID;
-                    perror("adeus loren");
                     if (t.multi == 0) {
                         exec_command(t.argumento,t.ID,output_folder);
                     } else if (t.multi == 1) {
@@ -407,7 +454,6 @@ int main(int argc, char* argv[]) {
                         struct Tarefa t2;
                         int log_fd2 = open(LOG, O_RDWR);
                         while((bytes_read = read(log_fd2, &t2, sizeof(struct Tarefa)))>0 && t2.ID!=tID);
-                        perror("merda do pedro");
                         gettimeofday(&end,NULL);
                         elapsedTime = (end.tv_sec - start.tv_sec) * 1000.0;
                         elapsedTime += (end.tv_usec - start.tv_usec) / 1000.0;
@@ -416,7 +462,17 @@ int main(int argc, char* argv[]) {
                         lseek(log_fd2, -sizeof(struct Tarefa), SEEK_CUR);
                         write(log_fd2, &t2, sizeof(struct Tarefa));
                         close(log_fd2);
-                        perror("ola lorem");
+                        int comp_fd;
+                        comp_fd = open(Completed,O_WRONLY | O_APPEND);
+                        char stringfinal[50];
+                        sprintf(stringfinal,"%d",tID);
+                        strcat(stringfinal, " ");
+                        char tempostr[30];
+                        sprintf(tempostr,"%d",(int)elapsedTime);
+                        strcat(tempostr," ms\n");
+                        strcat(stringfinal,tempostr);
+                        write(comp_fd,stringfinal,sizeof(stringfinal));
+                        close(comp_fd);
                     }
                 }
             

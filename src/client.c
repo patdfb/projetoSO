@@ -127,13 +127,28 @@ int main(int argc, char* argv[]) {
         for (int i=0;i<MAX_COMMAND*MAX_COMMAND;i++) {
             linha[i] = '\0';
         }
-        int i;
+
         r = read(pipe_fd2, linha, sizeof(linha));
         write(1,linha,sizeof(linha));
 
         
         close(pipe_fd2);
         unlink(clientID);
+    } else if (strcmp(argv[1], "shutdown") == 0 ) {
+        struct Tarefa t;
+
+        strcpy(t.argumento,"shutdown");
+
+        int pipe_fd = open(FIFO_FILE, O_WRONLY); // Abre o pipe nomeado em modo escrita
+        if (pipe_fd == -1) {
+            perror("Erro ao abrir fifo11.");
+            _exit(EXIT_FAILURE);
+        }
+
+        ssize_t w = write(pipe_fd, &t, sizeof(struct Tarefa)); // assim????? + perror
+
+        close(pipe_fd); // Fecha o pipe, o servidor depois abre o pipe, lê e executa
+
     }
     return 0;
 }
